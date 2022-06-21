@@ -21,6 +21,7 @@ from utils import progress_bar, checkpoint, AverageMeter, accuracy
 from loss import pairwise_similarity, NT_xent
 from torchlars import LARS
 from warmup_scheduler import GradualWarmupScheduler
+import wandb
 
 args = parser()
 
@@ -29,6 +30,7 @@ def print_status(string):
         print(string)
 
 ngpus_per_node = torch.cuda.device_count()
+print(ngpus_per_node)
 if args.ngpu>1:
     multi_gpu=True
 elif args.ngpu==1:
@@ -36,6 +38,8 @@ elif args.ngpu==1:
 else:
     assert("Need GPU....")
 if args.local_rank % ngpus_per_node == 0:
+    wandb.init()
+    wandb.config.update(args)
     print_args(args)
 
 start_epoch = 0  # start from epoch 0 or last checkpoint epoch
@@ -43,13 +47,13 @@ start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 if args.seed != 0:
     torch.manual_seed(args.seed)
 
-world_size = args.ngpu
-torch.distributed.init_process_group(
-    'nccl',
-    init_method='env://',
-    world_size=world_size,
-    rank=args.local_rank,
-)
+# world_size = args.ngpu
+# torch.distributed.init_process_group(
+#     'nccl',
+#     init_method='env://',
+#     world_size=world_size,
+#     rank=args.local_rank,
+# )
 
 # Data
 print_status('==> Preparing data..')
@@ -85,19 +89,19 @@ else:
 model.cuda()
 projector.cuda()
 
-model       = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
-model       = torch.nn.parallel.DistributedDataParallel(
-                model,
-                device_ids=[args.local_rank],
-                output_device=args.local_rank,
-                find_unused_parameters=True,
-)
-projector   = torch.nn.parallel.DistributedDataParallel(
-                projector,
-                device_ids=[args.local_rank],
-                output_device=args.local_rank,
-                find_unused_parameters=True,
-)
+# model       = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
+# model       = torch.nn.parallel.DistributedDataParallel(
+#                 model,
+#                 device_ids=[args.local_rank],
+#                 output_device=args.local_rank,
+#                 find_unused_parameters=True,
+# )
+# projector   = torch.nn.parallel.DistributedDataParallel(
+#                 projector,
+#                 device_ids=[args.local_rank],
+#                 output_device=args.local_rank,
+#                 find_unused_parameters=True,
+# )
 
 cudnn.benchmark = True
 print_status('Using CUDA..')
@@ -123,15 +127,16 @@ def train(epoch):
     projector.train()
 
     train_sampler.set_epoch(epoch)
-    scheduler_warmup.step()
+    # scheduler_warmup.step()
 
     total_loss = 0
     reg_simloss = 0
     reg_loss = 0
 
     for batch_idx, (ori, inputs_1, inputs_2, label) in enumerate(trainloader):
+        print('A')
         ori, inputs_1, inputs_2 = ori.cuda(), inputs_1.cuda() ,inputs_2.cuda()
-
+        print('B')
         if args.attack_to=='original':
             attack_target = inputs_1
         else:
@@ -212,6 +217,12 @@ print(args.name)
 ##### Training #####
 for epoch in range(start_epoch, args.epoch):
     train_loss, reg_loss = train(epoch)
+    wandb.log({
+        "epoch": epoch,
+        "train_loss": train_loss,
+        "reg_loss": reg_loss
+    })
+
     test(epoch, train_loss)
 
     if args.local_rank % ngpus_per_node == 0:

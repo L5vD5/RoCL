@@ -16,14 +16,14 @@ def pairwise_similarity(outputs,temperature=0.5,multi_gpu=False, adv_type='None'
         outputs_1   = outputs[0:B]
         outputs_2   = outputs[B:]
 
-        gather_t_1 = [torch.empty_like(outputs_1) for i in range(dist.get_world_size())]
-        gather_t_1 = distops.all_gather(gather_t_1, outputs_1)
+        # gather_t_1 = [torch.empty_like(outputs_1) for i in range(dist.get_world_size())]
+        # gather_t_1 = distops.all_gather(gather_t_1, outputs_1)
 
-        gather_t_2 = [torch.empty_like(outputs_2) for i in range(dist.get_world_size())]
-        gather_t_2 = distops.all_gather(gather_t_2, outputs_2)
+        # gather_t_2 = [torch.empty_like(outputs_2) for i in range(dist.get_world_size())]
+        # gather_t_2 = distops.all_gather(gather_t_2, outputs_2)
 
-        outputs_1 = torch.cat(gather_t_1)
-        outputs_2 = torch.cat(gather_t_2)
+        # outputs_1 = torch.cat(gather_t_1)
+        # outputs_2 = torch.cat(gather_t_2)
         outputs = torch.cat((outputs_1,outputs_2))
     elif multi_gpu and 'Rep' in adv_type:
         if adv_type == 'Rep':
@@ -34,18 +34,18 @@ def pairwise_similarity(outputs,temperature=0.5,multi_gpu=False, adv_type='None'
         outputs_2   = outputs[B:2*B]
         outputs_3   = outputs[2*B:3*B]
 
-        gather_t_1 = [torch.empty_like(outputs_1) for i in range(dist.get_world_size())]
-        gather_t_1 = distops.all_gather(gather_t_1, outputs_1)
+        # gather_t_1 = [torch.empty_like(outputs_1) for i in range(dist.get_world_size())]
+        # gather_t_1 = distops.all_gather(gather_t_1, outputs_1)
 
-        gather_t_2 = [torch.empty_like(outputs_2) for i in range(dist.get_world_size())]
-        gather_t_2 = distops.all_gather(gather_t_2, outputs_2)
+        # gather_t_2 = [torch.empty_like(outputs_2) for i in range(dist.get_world_size())]
+        # gather_t_2 = distops.all_gather(gather_t_2, outputs_2)
 
-        gather_t_3 = [torch.empty_like(outputs_3) for i in range(dist.get_world_size())]
-        gather_t_3 = distops.all_gather(gather_t_3, outputs_3)
+        # gather_t_3 = [torch.empty_like(outputs_3) for i in range(dist.get_world_size())]
+        # gather_t_3 = distops.all_gather(gather_t_3, outputs_3)
 
-        outputs_1 = torch.cat(gather_t_1)
-        outputs_2 = torch.cat(gather_t_2)
-        outputs_3 = torch.cat(gather_t_3)
+        # outputs_1 = torch.cat(gather_t_1)
+        # outputs_2 = torch.cat(gather_t_2)
+        # outputs_3 = torch.cat(gather_t_3)
 
         if N==3:
             outputs = torch.cat((outputs_1,outputs_2,outputs_3))
